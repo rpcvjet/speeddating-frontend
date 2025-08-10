@@ -17,6 +17,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pages/api/selection-sessions/[token].js", "pages/api/selection-sessions/process-matches/[eventId].js", "pages/api/events/[eventId]/send-selection-links.js", "pages/admin/dashboard/[eventId].js", "pages/admin/dashboard.js", "pages/api/events/[eventId]/update.js", "pages/api/events/[eventId]/status.js", "pages/admin/events.js", "pages/admin/create-event.js", "pages/admin/edit-event/[eventId].js", "pages/api/events/[eventId]/create.js", "pages/_app.js", "pages/api/events/[eventId]/participants/checkin.js"],
   "exclude": ["node_modules"]
 }
