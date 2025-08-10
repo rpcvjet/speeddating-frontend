@@ -46,21 +46,6 @@ const LoginPage = () => {
         setIsLoading(false);
     };
 
-    const fillDemoCredentials = (userType) => {
-        if (userType === 'admin') {
-            setEmail('admin@dcspeed.com');
-            setPassword('password123');
-        } else if (userType === 'organizer') {
-            setEmail('mike@dcspeed.com');
-            setPassword('password123');
-        } else if (userType === 'nyc') {
-            setEmail('admin@nycsingles.com');
-            setPassword('password123');
-        } else if (userType === 'miami') {
-            setEmail('contact@miamilove.com');
-            setPassword('password123');
-        }
-    };
 
     if (authLoading) {
         return (
@@ -184,59 +169,6 @@ const LoginPage = () => {
                         </div>
                     </div>
                 </form>
-
-                {/* Demo Credentials */}
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                        <Users className="h-5 w-5 mr-2 text-purple-600" />
-                        Demo Accounts
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                        Try logging in as different companies - each is completely separate:
-                    </p>
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => fillDemoCredentials('admin')}
-                            className="w-full text-left p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
-                        >
-                            <div className="font-medium text-gray-900">DC Speed Dating</div>
-                            <div className="text-sm text-gray-500">admin@dcspeed.com • Sarah Wilson</div>
-                        </button>
-
-                        <button
-                            onClick={() => fillDemoCredentials('organizer')}
-                            className="w-full text-left p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
-                        >
-                            <div className="font-medium text-gray-900">DC Speed Dating</div>
-                            <div className="text-sm text-gray-500">mike@dcspeed.com • Mike Johnson</div>
-                        </button>
-
-                        <button
-                            onClick={() => fillDemoCredentials('nyc')}
-                            className="w-full text-left p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
-                        >
-                            <div className="font-medium text-gray-900">NYC Singles Events</div>
-                            <div className="text-sm text-gray-500">admin@nycsingles.com • Emma Rodriguez</div>
-                        </button>
-
-                        <button
-                            onClick={() => fillDemoCredentials('miami')}
-                            className="w-full text-left p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
-                        >
-                            <div className="font-medium text-gray-900">Miami Love Connection</div>
-                            <div className="text-sm text-gray-500">contact@miamilove.com • Maria Garcia</div>
-                        </button>
-                    </div>
-
-                    <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                        <p className="text-sm text-blue-700">
-                            <strong>Password for all demo accounts:</strong> password123
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                            Each company only sees their own events and data.
-                        </p>
-                    </div>
-                </div>
 
                 {/* Footer */}
                 <div className="text-center">
