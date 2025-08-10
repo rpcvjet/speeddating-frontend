@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, Eye, EyeOff, Heart } from 'lucide-react';
 import Link from 'next/link';
 
-
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -35,17 +34,34 @@ const LoginPage = () => {
             return;
         }
 
-        const result = await login(email, password);
+        try {
+            const result = await login(email, password);
 
-        if (result.success) {
-            router.push('/admin/events');
-        } else {
-            setError(result.error || 'Login failed. Please try again.');
+            if (result && result.success) {
+                router.push('/admin/events');
+            } else {
+                // Handle different types of errors
+                const errorMessage = result?.error || 'Login failed. Please check your credentials and try again.';
+                setError(errorMessage);
+            }
+        } catch (err) {
+            // Catch any unhandled errors from the AuthContext
+            console.error('Login error:', err);
+
+            // Provide user-friendly error messages based on error type
+            if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+                setError('Invalid email or password. Please try again.');
+            } else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+                setError('Network error. Please check your connection and try again.');
+            } else if (err.message?.includes('timeout')) {
+                setError('Request timeout. Please try again.');
+            } else {
+                setError('Something went wrong. Please try again later.');
+            }
         }
 
         setIsLoading(false);
     };
-
 
     if (authLoading) {
         return (
@@ -97,6 +113,7 @@ const LoginPage = () => {
                                         placeholder="Enter your email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        disabled={isLoading}
                                     />
                                 </div>
                             </div>
@@ -120,12 +137,14 @@ const LoginPage = () => {
                                         placeholder="Enter your password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
+                                        disabled={isLoading}
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                                         <button
                                             type="button"
-                                            className="text-gray-400 hover:text-gray-600"
+                                            className="text-gray-400 hover:text-gray-600 focus:outline-none"
                                             onClick={() => setShowPassword(!showPassword)}
+                                            disabled={isLoading}
                                         >
                                             {showPassword ? (
                                                 <EyeOff className="h-5 w-5" />
@@ -137,10 +156,19 @@ const LoginPage = () => {
                                 </div>
                             </div>
 
-                            {/* Error Message */}
+                            {/* Error Message - Enhanced styling */}
                             {error && (
-                                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                                    <p className="text-sm text-red-600">{error}</p>
+                                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+                                    <div className="flex">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-red-700">{error}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -152,19 +180,22 @@ const LoginPage = () => {
                                     className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                 >
                                     {isLoading ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                        <div className="flex items-center">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                            Signing in...
+                                        </div>
                                     ) : (
                                         'Sign In'
                                     )}
                                 </button>
                             </div>
+
                             <div className="flex items-center mt-4">
                                 <div className="text-sm">
-                                    <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                                    <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
                                         Forgot your password?
                                     </Link>
                                 </div>
-
                             </div>
                         </div>
                     </div>

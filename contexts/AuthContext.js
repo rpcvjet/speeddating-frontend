@@ -44,14 +44,11 @@ export const AuthProvider = ({ children }) => {
                 body: JSON.stringify({ email, password }),
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
             console.log('✅ AWS API Response:', data);
 
-            if (data.success) {
+            // Check if response is successful (200-299 status codes)
+            if (response.ok && data.success) {
                 // Save user data with token from AWS
                 const userData = {
                     ...data.user,
@@ -61,16 +58,24 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('user', JSON.stringify(userData));
                 setUser(userData);
 
-                // Redirect to admin dashboard
-                router.push('/admin/events');
-
+                // DON'T redirect here - let the login component handle it
                 return { success: true };
             } else {
-                return { success: false, error: data.error || 'Login failed' };
+                // Handle both API errors and response errors
+                const errorMessage = data.message || data.error || 'Invalid email or password';
+                return { success: false, error: errorMessage };
             }
         } catch (error) {
             console.error('❌ Login API error:', error);
-            return { success: false, error: error.message };
+
+            // Provide more specific error messages
+            if (error.message.includes('Failed to fetch')) {
+                return { success: false, error: 'Unable to connect to server. Please check your internet connection.' };
+            } else if (error.message.includes('NetworkError')) {
+                return { success: false, error: 'Network error. Please try again.' };
+            } else {
+                return { success: false, error: 'Something went wrong. Please try again.' };
+            }
         }
     };
 
@@ -80,11 +85,15 @@ export const AuthProvider = ({ children }) => {
         router.push('/login');
     };
 
+    // Helper function to check if user is authenticated
+    const isAuthenticated = !!user;
+
     const value = {
         user,
         login,
         logout,
-        loading
+        loading,
+        isAuthenticated
     };
 
     return (
