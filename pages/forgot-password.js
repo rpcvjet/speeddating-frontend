@@ -56,7 +56,7 @@ const ForgotPassword = () => {
                             </h2>
 
                             <p className="text-sm text-gray-600 mb-6">
-                                If an account with <strong>{email}</strong> exists, we've sent you a password reset link.
+                                {`If an account with <strong>{email}</strong> exists, we've sent you a password reset link.`}
                             </p>
 
                             <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
@@ -71,7 +71,7 @@ const ForgotPassword = () => {
                             </div>
 
                             <p className="text-xs text-gray-500 mb-4">
-                                Didn't receive an email? Check your spam folder or try again.
+                                {`Didn't receive an email? Check your spam folder or try again.`}
                             </p>
 
                             <div className="space-y-3">
@@ -113,7 +113,7 @@ const ForgotPassword = () => {
                         Reset Your Password
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
-                        Enter your email address and we'll send you a link to reset your password.
+                        {`Enter your email address and we'll send you a link to reset your password.`}
                     </p>
                 </div>
             </div>

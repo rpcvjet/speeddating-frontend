@@ -40,7 +40,7 @@ const ThankYouPage = () => {
                                 <div>
                                     <h3 className="font-medium text-gray-900">Processing Period</h3>
                                     <p className="text-sm text-gray-600">
-                                        We'll wait for all participants to submit their selections or until the 24-hour deadline.
+                                        {`We'll wait for all participants to submit their selections or until the 24-hour deadline.`}
                                     </p>
                                 </div>
                             </div>
@@ -64,7 +64,7 @@ const ThankYouPage = () => {
                                 <div>
                                     <h3 className="font-medium text-gray-900">Results Delivered</h3>
                                     <p className="text-sm text-gray-600">
-                                        You'll receive an email with your matches and their contact information within 24-48 hours.
+                                        {`You'll receive an email with your matches and their contact information within 24-48 hours.`}
                                     </p>
                                 </div>
                             </div>
@@ -82,14 +82,14 @@ const ThankYouPage = () => {
                             <div className="bg-white rounded-lg p-4">
                                 <h3 className="font-medium text-green-700 mb-2">💕 Romantic Matches</h3>
                                 <p className="text-gray-600">
-                                    When you both selected "Match" - you'll receive their phone number and email.
+                                    {`When you both selected "Match" - you'll receive their phone number and email.`}
                                 </p>
                             </div>
 
                             <div className="bg-white rounded-lg p-4">
                                 <h3 className="font-medium text-blue-700 mb-2">👥 Friend Matches</h3>
                                 <p className="text-gray-600">
-                                    When you both want to be friends - you'll receive their email address.
+                                    {`When you both want to be friends - you'll receive their email address.`}
                                 </p>
                             </div>
                         </div>
@@ -113,7 +113,7 @@ const ThankYouPage = () => {
                     <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
                         <p className="text-sm text-yellow-800">
                             <strong>Privacy Note:</strong> Your selections are completely confidential.
-                            Only mutual matches will be shared, and no one will know if you selected "Pass" for them.
+                            {`Only mutual matches will be shared, and no one will know if you selected "Pass" for them.`}
                         </p>
                     </div>
                 </div>

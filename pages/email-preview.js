@@ -183,7 +183,7 @@ const EmailPreview = () => {
                                 Email Preview
                             </h3>
                             <p style={{ fontSize: '12px', color: '#666' }}>
-                                This is how the email will appear in the participant's inbox
+                                {`This is how the email will appear in the participant's inbox`}
                             </p>
                         </div>
 
@@ -213,7 +213,7 @@ const EmailPreview = () => {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
                     <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '15px' }}>
-                        Text Version (for email clients that don't support HTML)
+                        {`Text Version (for email clients that don't support HTML)`}
                     </h3>
                     <pre style={{
                         backgroundColor: '#f8f9fa',

@@ -369,7 +369,7 @@ const ParticipantSelection = () => {
                             <li><strong>Friend + Match:</strong> Open to both friendship and romance</li>
                         </ul>
                         <p className="text-blue-600 font-medium">
-                            Your choices are private. Results will be shared only when there's mutual interest.
+                            {`Your choices are private. Results will be shared only when there's mutual interest.`}
                         </p>
                     </div>
                 </div>
