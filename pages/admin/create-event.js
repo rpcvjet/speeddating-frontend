@@ -1,7 +1,7 @@
 // pages/admin/create-event.js
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Upload, Plus, Trash2, Save, ArrowLeft, FileText } from 'lucide-react';
+import { Upload, Plus, Trash2, Save, ArrowLeft, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 

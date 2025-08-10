@@ -1,7 +1,7 @@
 // pages/admin/events.js - Connected to Real Backend API
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Clock, Plus, Eye, Settings, Edit, Trash2, LogOut, User } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, Eye, Settings, Edit, Trash2, LogOut, } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
@@ -13,7 +13,6 @@ const EventsList = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('date_desc');
   const [error, setError] = useState(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // API Configuration
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { Calendar, MapPin, Users, Upload, Plus, Trash2, Save, ArrowLeft, FileText, Edit, AlertTriangle } from 'lucide-react';
+import { Trash2, Save, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 

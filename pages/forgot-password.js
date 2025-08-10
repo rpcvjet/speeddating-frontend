@@ -1,11 +1,9 @@
 // pages/forgot-password.js
 import React, { useState } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 
 const ForgotPassword = () => {
-    const router = useRouter();
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Search, Users, Clock, CheckCircle, Circle, UserCheck, Mail, Phone, ArrowLeft, Calendar, MapPin, Play, Square, Edit, Send, Zap, Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import UserMenu from '../../../components/UserMenu';
 
 const EventDashboard = () => {
   const router = useRouter();
@@ -22,7 +21,7 @@ const EventDashboard = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false); // Add user menu state
 
   // API Configuration
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-api-gateway-url.amazonaws.com';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // Refresh participants and selection progress
   const refreshParticipants = async () => {
