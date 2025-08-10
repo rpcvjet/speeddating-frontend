@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, Eye, EyeOff, Heart, Users } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Heart } from 'lucide-react';
 import Link from 'next/link';
 
 
