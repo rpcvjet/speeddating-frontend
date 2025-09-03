@@ -890,13 +890,6 @@ const EventDashboard = () => {
               </div>
             </div>
           </div>
-          // See what's in your participants array
-          {console.table(participants.map(p => ({
-            name: p.name,
-            selection_status: p.selection_status,
-            selection_submitted_at: p.selection_submitted_at,
-            selection_link_sent: p.selection_link_sent
-          })))}
 
           {/* Enhanced Participants Table */}
           <div className="overflow-x-auto">
