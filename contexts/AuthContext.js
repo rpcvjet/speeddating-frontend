@@ -85,6 +85,16 @@ export const AuthProvider = ({ children }) => {
         router.push('/login');
     };
 
+    const checkTokenValidity = (error) => {
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+            console.log('🔒 Token invalid, clearing auth state');
+            localStorage.removeItem('user');
+            setUser(null);
+            return true;
+        }
+        return false;
+    };
+
     // Helper function to check if user is authenticated
     const isAuthenticated = !!user;
 
@@ -93,7 +103,8 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         loading,
-        isAuthenticated
+        isAuthenticated,
+        checkTokenValidity
     };
 
     return (

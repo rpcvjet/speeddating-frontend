@@ -2,9 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { Search, Users, Clock, CheckCircle, Circle, UserCheck, Mail, Phone, ArrowLeft, Calendar, MapPin, Play, Square, Edit, Send, Zap, Settings, LogOut, User } from 'lucide-react';
+import { validateEmailDomain } from '../../../utils/emailValidation';
+
+import { Search, Users, CheckCircle, Circle, UserCheck, Mail, Phone, ArrowLeft, Calendar, MapPin, Play, Square, Edit, Send, Zap, Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedRoute from '../../../components/ProtectedRoute';
+
 
 const EventDashboard = () => {
   const router = useRouter();
@@ -19,6 +22,10 @@ const EventDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [userMenuOpen, setUserMenuOpen] = useState(false); // Add user menu state
+  const [adminMode, setAdminMode] = useState(false);
+  const [editingParticipant, setEditingParticipant] = useState(null);
+  const [isResending, setIsResending] = useState({});
+  const [isUpdatingParticipant, setIsUpdatingParticipant] = useState({});
 
   // API Configuration
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -240,6 +247,127 @@ const EventDashboard = () => {
       alert(`Error sending selection links: ${error.message}`);
     }
   };
+
+  const updateParticipantEmail = async (participantId, newEmail) => {
+    // Prevent multiple simultaneous updates
+    if (isUpdatingParticipant[participantId]) return;
+
+    try {
+      // Start loading for this specific participant
+      setIsUpdatingParticipant(prev => ({ ...prev, [participantId]: true }));
+
+      // Validate email before updating
+      const emailValidation = validateEmailBeforeUpdate(newEmail);
+      if (!emailValidation.valid) {
+        return; // Stop if email is invalid
+      }
+
+      const finalEmail = emailValidation.correctedEmail;
+      const participant = participants.find(p => p.participant_id === participantId);
+
+      const response = await fetch(`${API_BASE_URL}/participants/${participantId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          name: participant.name,
+          email: finalEmail,
+          phone: participant.phone,
+          age: participant.age,
+          gender: participant.gender,
+          adminOverride: adminMode
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update participant: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ Email updated for ${participant.name}!${result.emailChanged ? ' Email status has been reset.' : ''}`);
+        await refreshParticipants();
+        setEditingParticipant(null);
+      } else if (result.requiresAdminOverride) {
+        alert('⚠️ Event is closed. Please enable Admin Mode to edit participants.');
+      } else {
+        throw new Error(result.message || 'Failed to update participant');
+      }
+
+    } catch (error) {
+      console.error('Error updating participant:', error);
+      alert(`Error updating participant: ${error.message}`);
+    } finally {
+      // Always clear loading state
+      setIsUpdatingParticipant(prev => ({ ...prev, [participantId]: false }));
+    }
+  };
+
+  const validateEmailBeforeUpdate = (email) => {
+    const validation = validateEmailDomain(email);
+    if (!validation.valid) {
+      if (validation.suggestion) {
+        const useCorrection = confirm(`${validation.error}\n\nWould you like to use the suggested correction instead?`);
+        if (useCorrection) {
+          return { valid: true, correctedEmail: validation.suggestion };
+        }
+      } else {
+        alert(`Invalid email: ${validation.error}`);
+      }
+      return { valid: false };
+    }
+    return { valid: true, correctedEmail: email };
+  };
+
+  // Resend selection link to individual participant
+  const resendSelectionLink = async (participantId) => {
+    if (isResending[participantId]) return; // Prevent double-clicking
+
+    try {
+      setIsResending(prev => ({ ...prev, [participantId]: true }));
+
+      const response = await fetch(`${API_BASE_URL}/participants/${participantId}/resend-selection-link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          adminOverride: adminMode
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to resend selection link: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ Selection link resent to ${result.participant_name}!`);
+        // Refresh participants to show updated status
+        await refreshParticipants();
+      } else {
+        throw new Error(result.message || 'Failed to resend selection link');
+      }
+
+    } catch (error) {
+      console.error('Error resending selection link:', error);
+
+      if (error.message.includes('Admin override required')) {
+        alert('⚠️ Event is closed. Please enable Admin Mode to resend selection links.');
+      } else {
+        alert(`Error resending selection link: ${error.message}`);
+      }
+    } finally {
+      setIsResending(prev => ({ ...prev, [participantId]: false }));
+    }
+  };
+
+
 
   // Process matches
   const processMatches = async () => {
@@ -674,19 +802,45 @@ const EventDashboard = () => {
         )}
 
         {/* Main Content */}
+        {/* Enhanced Participants List with Email Status */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-lg font-medium text-gray-900">Participant Check-In</h3>
+              <div className="flex items-center justify-between w-full">
+                <h3 className="text-lg font-medium text-gray-900">Participant Management</h3>
+
+                {/* Admin Mode Toggle - Show only for closed events */}
+                {currentEvent.status === 'closed' && (
+                  <div className="flex items-center">
+                    <label className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={adminMode}
+                        onChange={(e) => setAdminMode(e.target.checked)}
+                        className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                      />
+                      <span className={`font-medium ${adminMode ? 'text-orange-600' : 'text-gray-500'}`}>
+                        🔧 Admin Edit Mode
+                      </span>
+                    </label>
+                    {adminMode && (
+                      <span className="ml-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                        Override enabled for closed event
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                {/* Search - Alternative fix */}
+                <div className="relative flex-shrink-0">
+                  <Search className="absolute left-3 top-2 text-gray-400 w-4 h-4 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Search participants..."
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent h-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -703,7 +857,7 @@ const EventDashboard = () => {
                   <option value="not_checked_in">Not Checked In</option>
                 </select>
 
-                {/* Send Links Button */}
+                {/* Action Buttons */}
                 <button
                   onClick={sendSelectionLinks}
                   disabled={checkedInCount === 0 || currentEvent.status !== 'completed'}
@@ -714,7 +868,6 @@ const EventDashboard = () => {
                   Send Selection Links
                 </button>
 
-                {/* Process Matches Button */}
                 <button
                   onClick={processMatches}
                   disabled={!selectionProgress}
@@ -725,7 +878,6 @@ const EventDashboard = () => {
                   Process Matches
                 </button>
 
-                {/* Send Match Results Button */}
                 <button
                   onClick={sendMatchResults}
                   disabled={!selectionProgress}
@@ -738,26 +890,33 @@ const EventDashboard = () => {
               </div>
             </div>
           </div>
+          // See what's in your participants array
+          {console.table(participants.map(p => ({
+            name: p.name,
+            selection_status: p.selection_status,
+            selection_submitted_at: p.selection_submitted_at,
+            selection_link_sent: p.selection_link_sent
+          })))}
 
-          {/* Participants List */}
+          {/* Enhanced Participants Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Check-in Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    Name & Details
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Details
+                    Contact Info
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Selection Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -767,6 +926,7 @@ const EventDashboard = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredParticipants.map((participant) => (
                   <tr key={participant.participant_id} className="hover:bg-gray-50">
+                    {/* Check-in Status */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {participant.checked_in ? (
@@ -774,38 +934,105 @@ const EventDashboard = () => {
                         ) : (
                           <Circle className="w-5 h-5 text-gray-400" />
                         )}
-                        <span className={`ml-2 text-sm font-medium ${participant.checked_in ? 'text-green-600' : 'text-gray-500'
-                          }`}>
+                        <span className={`ml-2 text-sm font-medium ${participant.checked_in ? 'text-green-600' : 'text-gray-500'}`}>
                           {participant.checked_in ? 'Checked In' : 'Not Checked In'}
                         </span>
                       </div>
                     </td>
+
+                    {/* Name & Details */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{participant.name}</div>
-                      <div className="text-sm text-gray-500">ID: {participant.mindbody_id}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Mail className="w-4 h-4 mr-1" />
-                        {participant.email}
+                      <div className="text-sm text-gray-500">
+                        Age: {participant.age} • {participant.gender}
                       </div>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Phone className="w-4 h-4 mr-1" />
-                        {participant.phone}
+                      {participant.mindbody_id && (
+                        <div className="text-xs text-gray-400">ID: {participant.mindbody_id}</div>
+                      )}
+                    </td>
+
+                    {/* Contact Info */}
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        {/* Email with edit capability and loading spinner */}
+                        <div className="flex items-center text-sm">
+                          <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                          {editingParticipant === participant.participant_id ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="email"
+                                defaultValue={participant.email}
+                                disabled={isUpdatingParticipant[participant.participant_id]}
+                                className={`text-sm border border-gray-300 rounded px-2 py-1 ${isUpdatingParticipant[participant.participant_id]
+                                  ? 'bg-gray-100 cursor-not-allowed'
+                                  : ''
+                                  }`}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !isUpdatingParticipant[participant.participant_id]) {
+                                    updateParticipantEmail(participant.participant_id, e.target.value);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingParticipant(null);
+                                  }
+                                }}
+                                autoFocus
+                              />
+
+                              {/* Loading spinner or close button */}
+                              {isUpdatingParticipant[participant.participant_id] ? (
+                                <div className="flex items-center space-x-1">
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                  <span className="text-xs text-blue-600">Saving...</span>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setEditingParticipant(null)}
+                                  className="text-xs text-gray-500 hover:text-gray-700"
+                                  title="Cancel editing"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-700">{participant.email}</span>
+                              {(currentEvent.status !== 'closed' || adminMode) && !isUpdatingParticipant[participant.participant_id] && (
+                                <button
+                                  onClick={() => setEditingParticipant(participant.participant_id)}
+                                  className="text-xs text-blue-600 hover:text-blue-800"
+                                  title="Edit email address"
+                                >
+                                  ✏️
+                                </button>
+                              )}
+
+                              {/* Show spinner next to edit button when updating */}
+                              {isUpdatingParticipant[participant.participant_id] && (
+                                <div className="flex items-center space-x-1">
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                  <span className="text-xs text-blue-600">Updating...</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Phone */}
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                          {participant.phone}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">Age: {participant.age}</div>
-                      <div className="text-sm text-gray-500">{participant.gender}</div>
-                    </td>
+
+                    {/* Selection Status */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {participant.selection_link_sent ? (
                         <div className="flex items-center">
                           {participant.selection_status === 'completed' ? (
                             <>
-                              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                               <div>
-                                <span className="text-sm font-medium text-green-600">Completed</span>
+                                <span className="text-sm font-medium text-green-600">✅ Completed</span>
                                 {participant.selection_submitted_at && (
                                   <p className="text-xs text-gray-500">
                                     {new Date(participant.selection_submitted_at).toLocaleDateString()}
@@ -815,8 +1042,7 @@ const EventDashboard = () => {
                             </>
                           ) : (
                             <>
-                              <Clock className="w-4 h-4 text-orange-500 mr-2" />
-                              <span className="text-sm font-medium text-orange-600">Pending</span>
+                              <span className="text-sm font-medium text-orange-600">⏳ Pending</span>
                             </>
                           )}
                         </div>
@@ -824,18 +1050,69 @@ const EventDashboard = () => {
                         <span className="text-sm text-gray-500">No link sent</span>
                       )}
                     </td>
+
+                    {/* Email Status */}
+                    {/* Email Status - Simplified */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => toggleCheckIn(participant.participant_id)}
-                        disabled={currentEvent.status !== 'active'}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${participant.checked_in
-                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                          : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        title={currentEvent.status !== 'active' ? 'Event must be active to check in participants' : ''}
-                      >
-                        {participant.checked_in ? 'Check Out' : 'Check In'}
-                      </button>
+                      <div className="space-y-1">
+                        {participant.selection_link_sent ? (
+                          <div className="flex items-center">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              ✅ Sent
+                            </span>
+                            {participant.selection_link_sent_at && (
+                              <span className="ml-2 text-xs text-gray-500">
+                                {new Date(participant.selection_link_sent_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            📧 Not sent
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-2">
+                        {/* Check-in button */}
+                        <button
+                          onClick={() => toggleCheckIn(participant.participant_id)}
+                          disabled={currentEvent.status !== 'active'}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${participant.checked_in
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            }`}
+                          title={currentEvent.status !== 'active' ? 'Event must be active to check in participants' : ''}
+                        >
+                          {participant.checked_in ? 'Check Out' : 'Check In'}
+                        </button>
+
+                        {/* Resend selection link - Show for everyone after event is completed */}
+                        {currentEvent.status === 'completed' && (
+                          <button
+                            onClick={() => resendSelectionLink(participant.participant_id)}
+                            disabled={isResending[participant.participant_id] || (currentEvent.status === 'closed' && !adminMode)}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={
+                              currentEvent.status === 'closed' && !adminMode
+                                ? 'Enable Admin Mode to resend'
+                                : 'Send selection link to this participant'
+                            }
+                          >
+                            {isResending[participant.participant_id] ? (
+                              <span className="flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                Sending...
+                              </span>
+                            ) : (
+                              '📧 Send Link'
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -843,6 +1120,7 @@ const EventDashboard = () => {
             </table>
           </div>
 
+          {/* Empty State */}
           {filteredParticipants.length === 0 && (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-gray-400" />
@@ -852,8 +1130,11 @@ const EventDashboard = () => {
               </p>
             </div>
           )}
+
         </div>
+
       </div>
+
     </div>
   );
 };

@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Upload, Plus, Trash2, Save, ArrowLeft, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+// Add this line after your existing imports (around line 4)
+import { EmailInput, validateEmailDomain } from '../../utils/emailValidation';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
 const CreateEvent = () => {
@@ -24,6 +26,7 @@ const CreateEvent = () => {
 
   // Participants list
   const [participants, setParticipants] = useState([]);
+  const [emailValid, setEmailValid] = useState(true);
 
   // Form for adding individual participant
   const [newParticipant, setNewParticipant] = useState({
@@ -60,15 +63,40 @@ const CreateEvent = () => {
     }));
   };
 
-  // Add individual participant
+  // Add individual participant with email validation
   const addParticipant = () => {
     if (!newParticipant.name || !newParticipant.email || !newParticipant.phone) {
       alert('Please fill in name, email, and phone number');
       return;
     }
 
+    // Validate email domain before adding
+    const emailValidation = validateEmailDomain(newParticipant.email);
+    if (!emailValidation.valid) {
+      if (emailValidation.suggestion) {
+        const useCorrection = confirm(`${emailValidation.error}\n\nWould you like to use the suggested correction instead?`);
+        if (useCorrection) {
+          // Update the email with the suggestion
+          setNewParticipant(prev => ({ ...prev, email: emailValidation.suggestion }));
+          // Re-run validation with corrected email
+          const correctedValidation = validateEmailDomain(emailValidation.suggestion);
+          if (!correctedValidation.valid) {
+            alert(`Still invalid: ${correctedValidation.error}`);
+            return;
+          }
+        } else {
+          return; // Don't add if user rejects suggestion
+        }
+      } else {
+        alert(`Invalid email: ${emailValidation.error}`);
+        return;
+      }
+    }
+
     const participant = {
       ...newParticipant,
+      // Use the corrected email if applicable
+      email: emailValidation.suggestion || newParticipant.email,
       participant_id: `temp_${Date.now()}`,
       checked_in: false
     };
@@ -82,6 +110,7 @@ const CreateEvent = () => {
       gender: '',
       mindbody_id: ''
     });
+    setEmailValid(true); // Reset email validation state
   };
 
   // Remove participant
@@ -115,17 +144,33 @@ const CreateEvent = () => {
     });
   };
 
-  // Update participant
+  // Update participant with email validation
   const updateParticipant = () => {
     if (!newParticipant.name || !newParticipant.email || !newParticipant.phone) {
       alert('Please fill in name, email, and phone number');
       return;
     }
 
+    // Validate email domain before updating
+    const emailValidation = validateEmailDomain(newParticipant.email);
+    if (!emailValidation.valid) {
+      if (emailValidation.suggestion) {
+        const useCorrection = confirm(`${emailValidation.error}\n\nWould you like to use the suggested correction instead?`);
+        if (useCorrection) {
+          setNewParticipant(prev => ({ ...prev, email: emailValidation.suggestion }));
+        } else {
+          return;
+        }
+      } else {
+        alert(`Invalid email: ${emailValidation.error}`);
+        return;
+      }
+    }
+
     setParticipants(prev =>
       prev.map(p =>
         p.participant_id === editingParticipant.participant_id
-          ? { ...p, ...newParticipant }
+          ? { ...p, ...newParticipant, email: emailValidation.suggestion || newParticipant.email }
           : p
       )
     );
@@ -461,12 +506,13 @@ const CreateEvent = () => {
                       value={newParticipant.name}
                       onChange={(e) => handleParticipantChange('name', e.target.value)}
                     />
-                    <input
-                      type="email"
+                    <EmailInput
+                      value={newParticipant.email}
+                      onChange={(email) => handleParticipantChange('email', email)}
+                      onValidation={(result) => setEmailValid(result.valid)}
                       placeholder="Email *"
                       className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={newParticipant.email}
-                      onChange={(e) => handleParticipantChange('email', e.target.value)}
+                      required
                     />
                     <input
                       type="tel"
@@ -511,7 +557,9 @@ const CreateEvent = () => {
                     ) : (
                       <button
                         onClick={addParticipant}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                        disabled={!emailValid || !newParticipant.name || !newParticipant.email || !newParticipant.phone}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={!emailValid ? 'Please fix the email address' : ''}
                       >
                         Add
                       </button>
